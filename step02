@@ -1,0 +1,77 @@
+# -*- coding: utf-8 -*-
+# 课堂实验：找零问题 —— 贪心算法 vs 动态规划
+# 面额 [1, 5, 11]，金额 15，对比两种算法的结果
+
+
+def coin_greedy(coins, amount):
+    """
+    贪心算法：每一步都取不超过剩余金额的最大面额
+    返回 (枚数, 组合列表)
+    """
+    coins_sorted = sorted(coins, reverse=True)  # 面额从大到小排序
+    rest = amount          # 剩余待找金额
+    result = []            # 存放已选的硬币
+
+    while rest > 0:
+        # 找到第一个不超过剩余金额的面额
+        for c in coins_sorted:
+            if c <= rest:
+                result.append(c)
+                rest -= c
+                break
+        else:
+            # 没有任何面额能用，说明无法凑出（本实验面额含1，不会发生）
+            return -1, []
+
+    return len(result), result
+
+
+def coin_dp(coins, amount):
+    """
+    动态规划：求凑出 amount 所需的最少硬币枚数
+    dp[i] 表示凑出金额 i 的最少枚数，choice[i] 记录凑 i 时最后选的那枚面额
+    返回 (枚数, 组合列表)
+    """
+    INF = float('inf')
+    dp = [INF] * (amount + 1)
+    choice = [-1] * (amount + 1)
+    dp[0] = 0  # 金额 0 需要 0 枚硬币
+
+    # 依次计算金额 1 到 amount 的最优解
+    for i in range(1, amount + 1):
+        for c in coins:
+            if c <= i and dp[i - c] + 1 < dp[i]:
+                dp[i] = dp[i - c] + 1   # 状态转移：选面额 c 更优就更新
+                choice[i] = c           # 记录这一步选的面额，便于回溯
+
+    if dp[amount] == INF:
+        return -1, []  # 无法凑出
+
+    # 回溯 choice 数组，还原出具体组合
+    result = []
+    i = amount
+    while i > 0:
+        c = choice[i]
+        result.append(c)
+        i -= c
+
+    return dp[amount], result
+
+
+if __name__ == "__main__":
+    coins = [1, 5, 11]
+    amount = 15
+
+    g_count, g_combo = coin_greedy(coins, amount)
+    d_count, d_combo = coin_dp(coins, amount)
+
+    print("面额:", coins, " 金额:", amount)
+    print("-" * 40)
+    print(f"贪心算法: {g_count} 枚, 组合 = {g_combo}")
+    print(f"动态规划: {d_count} 枚, 组合 = {d_combo}")
+    print("-" * 40)
+    # 贪心拿了 11 后只能用 1 补齐，不是最优；动规找到 5+5+5 的最优解
+    if g_count > d_count:
+        print("结论: 贪心算法更快但不一定最优，动态规划保证最优解。")
+    else:
+        print("结论: 本题中两种算法结果相同。")
