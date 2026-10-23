@@ -1,0 +1,82 @@
+# -*- coding: utf-8 -*-
+# 课堂演示：编辑距离（Edit Distance / Levenshtein 距离）—— 动态规划
+# 以 kitten -> sitting 为例，逐步填表并打印每格的决策算式与行快照
+
+
+def print_table(dp, a, b, filled_rows):
+    """
+    打印 dp 表的当前快照
+    dp[i][j] 表示 a 的前 i 个字符 变成 b 的前 j 个字符 所需的最少操作数
+    filled_rows 之后的行尚未计算，用 · 占位
+    """
+    # 表头：第一行是目标串 b 的字符
+    header = "      " + "  ".join(["''"] + list(b))
+    print(header)
+    for i in range(len(a) + 1):
+        # 行首标签：源串 a 的字符（第 0 行为空串 ''）
+        label = "''" if i == 0 else a[i - 1]
+        cells = []
+        for j in range(len(b) + 1):
+            if i <= filled_rows or j == 0:
+                # 已填的行、以及初始化好的第 0 列，显示数值
+                cells.append(f"{dp[i][j]:2d}")
+            else:
+                cells.append(" ·")                  # 未填的格子占位
+        print(f"  {label:>2s}  {'  '.join(cells)}")
+    print()
+
+
+def edit_distance(a, b):
+    """
+    动态规划求编辑距离（插入、删除、替换各算 1 次操作）
+    返回最少操作数，并全程打印填表过程供课堂讲解
+    """
+    m, n = len(a), len(b)
+    # dp[i][j] = a[:i] 变成 b[:j] 的最少操作数，共 (m+1)x(n+1) 格
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+    # ---- 边界初始化 ----
+    # 第 0 列：把 a[:i] 变成空串，只能逐个删除 i 次
+    for i in range(m + 1):
+        dp[i][0] = i
+    # 第 0 行：把空串变成 b[:j]，只能逐个插入 j 次
+    for j in range(n + 1):
+        dp[0][j] = j
+
+    print("【第 0 步】初始化边界：第 0 列 = 全删除次数，第 0 行 = 全插入次数")
+    print_table(dp, a, b, filled_rows=0)
+
+    # ---- 逐行填表 ----
+    for i in range(1, m + 1):
+        print(f"【第 {i} 行】处理源串字符 a[{i}] = '{a[i-1]}'")
+        for j in range(1, n + 1):
+            ca, cb = a[i - 1], b[j - 1]
+            if ca == cb:
+                # 两字符相同：无需操作，直接继承左上角
+                dp[i][j] = dp[i - 1][j - 1]
+                print(f"  格({i},{j}) '{ca}'=='{cb}' 相同: 免费继承左上 "
+                      f"dp[{i-1}][{j-1}] = {dp[i][j]}")
+            else:
+                # 三种操作各试一次，取代价最小者
+                delete_cost = dp[i - 1][j] + 1      # 删除 a 的当前字符
+                insert_cost = dp[i][j - 1] + 1      # 在 a 末尾插入 b 的当前字符
+                replace_cost = dp[i - 1][j - 1] + 1  # 把 a 的当前字符替换成 b 的
+                dp[i][j] = min(delete_cost, insert_cost, replace_cost)
+                print(f"  格({i},{j}) '{ca}'!='{cb}' 不同: "
+                      f"删除 dp[{i-1}][{j}]+1={delete_cost}, "
+                      f"插入 dp[{i}][{j-1}]+1={insert_cost}, "
+                      f"替换 dp[{i-1}][{j-1}]+1={replace_cost} "
+                      f"-> 取最小 = {dp[i][j]}")
+        # 每填完一行，打印一次中间表快照
+        print(f"  -- 第 {i} 行填完，当前表格快照 --")
+        print_table(dp, a, b, filled_rows=i)
+
+    return dp[m][n]
+
+
+if __name__ == "__main__":
+    a, b = "kitten", "sitting"
+    dist = edit_distance(a, b)
+    print("=" * 50)
+    print(f"结论: '{a}' -> '{b}' 的编辑距离 = {dist}")
+    print("对应操作: 替换 k->s, 替换 e->i, 末尾插入 g，共 3 步。")
