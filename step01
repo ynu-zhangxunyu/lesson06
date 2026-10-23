@@ -1,0 +1,100 @@
+# -*- coding: utf-8 -*-
+"""
+零钱找零问题：贪心 vs 动态规划对比实验
+
+经典示例：面额 [1, 5, 11]，金额 15
+    贪心：11 + 1*4 = 5 枚（非最优）
+    动规：5*3     = 3 枚（最优）
+"""
+
+def coin_greedy(coins, amount):
+    """
+    贪心算法：每一步优先取 ≤ 当前余额的最大面额硬币
+    参数：
+        coins  : 可用面额列表（不必有序）
+        amount : 需要凑出的总金额
+    返回：
+        (最少枚数, 具体组合列表)；若无法凑出返回 (None, [])
+    """
+    # 面额按从大到小排序，保证每次优先拿大的
+    sorted_coins = sorted(coins, reverse=True)
+
+    remaining = amount          # 剩余待凑金额
+    combination = []            # 记录选了哪些硬币
+
+    for c in sorted_coins:
+        if remaining <= 0:
+            break
+        # 当前面额能拿多少拿多少
+        take = remaining // c
+        combination.extend([c] * take)
+        remaining -= take * c
+
+    if remaining != 0:
+        return None, []         # 凑不出来（理论上有 1 就不会走到这里）
+
+    return len(combination), combination
+
+def coin_dp(coins, amount):
+    """
+    动态规划（完全背包）：求凑出 amount 的最少枚数
+    参数：
+        coins  : 可用面额列表
+        amount : 需要凑出的总金额
+    返回：
+        (最少枚数, 具体组合列表)；若无法凑出返回 (None, [])
+    """
+    INF = float('inf')
+
+    # dp[j] 表示凑出金额 j 所需的最少硬币枚数
+    dp = [INF] * (amount + 1)
+    dp[0] = 0                   # 凑出 0 元不需要任何硬币
+
+    # pred[j] 记录凑出金额 j 时最后一次选的是哪个面额，便于回溯组合
+    pred = [-1] * (amount + 1)
+
+    # 完全背包：外层遍历面额，内层正序遍历金额（每种硬币可取无限次）
+    for c in coins:
+        for j in range(c, amount + 1):
+            # 如果用一枚 c 能让 dp[j] 更小，就更新
+            if dp[j - c] + 1 < dp[j]:
+                dp[j] = dp[j - c] + 1
+                pred[j] = c
+
+    if dp[amount] == INF:
+        return None, []         # 无法凑出
+
+    # ========== 根据 pred 回溯具体组合 ==========
+    combination = []
+    j = amount
+    while j > 0:
+        c = pred[j]
+        if c == -1:
+            return None, []     # 理论上不会走到这里（dp[amount] != INF）
+        combination.append(c)
+        j -= c                  # 继续往前找凑出 j-c 时的最后一枚
+
+    combination.sort()           # 按面额从小到大排一下，好看
+    return dp[amount], combination
+
+# ==================== 主程序：打印对比 ====================
+if __name__ == "__main__":
+    coins = [1, 5, 11]
+    amount = 15
+
+    print("=" * 50)
+    print(f"面额：{coins}  金额：{amount}")
+    print("=" * 50)
+
+    cnt_g, combo_g = coin_greedy(coins, amount)
+    cnt_d, combo_d = coin_dp(coins, amount)
+
+    print(f"\n【贪心算法】")
+    print(f"  最少枚数：{cnt_g}")
+    print(f"  组合方式：{combo_g}")
+
+    print(f"\n【动态规划】")
+    print(f"  最少枚数：{cnt_d}")
+    print(f"  组合方式：{combo_d}")
+
+    print(f"\n结论：贪心 {'✘ 非最优' if cnt_g > cnt_d else '✔ 最优'}，动态规划得到了真正的最少枚数。")
