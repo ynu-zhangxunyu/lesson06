@@ -1,0 +1,70 @@
+# -*- coding: utf-8 -*-
+# 会议室调度问题（区间调度）：一间会议室，同一时间只能开一场会
+# 贪心策略：每次优先安排"最早结束"的会议，腾出时间给后面的会
+
+
+def max_meetings(meetings):
+    """
+    从若干会议中选出互不冲突、数量最多的一批
+    参数 meetings: [(会议名, 开始时间, 结束时间), ...]
+    返回 (最多可安排的场数, 被安排的会议列表，按开始时间排序)
+    """
+    # 第一步：按"结束时间"从早到晚排序（结束相同则按开始时间排）
+    meetings_sorted = sorted(meetings, key=lambda m: (m[2], m[1]))
+
+    chosen = []          # 已选中的会议
+    last_end = float('-inf')  # 上一场已选会议的结束时间
+
+    # 第二步：依次扫描，遇到不冲突（开始时间 >= 上一场结束时间）就选它
+    for m in meetings_sorted:
+        name, start, end = m
+        if start >= last_end:
+            chosen.append(m)   # 这场会与已选的不冲突，安排它
+            last_end = end     # 更新"上一场结束时间"
+
+    return len(chosen), chosen
+
+
+def show(case_no, meetings):
+    """打印一组测试用例的结果，方便阅读"""
+    count, chosen = max_meetings(meetings)
+    print(f"【测试 {case_no}】共有 {len(meetings)} 场候选会议")
+    print("  候选: " + ", ".join(f"{n}({s}-{e})" for n, s, e in meetings))
+    print(f"  最多可安排 {count} 场，安排结果:")
+    for name, start, end in chosen:
+        print(f"    - {name}: {start}:00 ~ {end}:00")
+    print()
+
+
+if __name__ == "__main__":
+    # 测试 1：常规场景，多场会议互相重叠
+    case1 = [
+        ("晨会",   9, 11),
+        ("产品评审", 10, 12),
+        ("客户电话", 11, 13),
+        ("午餐会",  12, 14),
+        ("技术分享", 13, 16),
+        ("项目复盘", 15, 17),
+    ]
+
+    # 测试 2：一场长会横跨多场短会 —— 贪心能选出更多短会
+    case2 = [
+        ("全天培训", 9, 18),
+        ("站会",    9, 10),
+        ("设计讨论", 10, 11),
+        ("面试",    11, 12),
+        ("一对一",   13, 14),
+        ("总结会",   16, 17),
+    ]
+
+    # 测试 3：会议首尾相接（一场结束另一场立刻开始，不算冲突）
+    case3 = [
+        ("A 会", 9, 10),
+        ("B 会", 10, 11),
+        ("C 会", 11, 12),
+        ("D 会", 12, 13),
+    ]
+
+    show(1, case1)
+    show(2, case2)
+    show(3, case3)
